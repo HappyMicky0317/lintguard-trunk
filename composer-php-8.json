@@ -1,0 +1,39 @@
+{
+    "name": "sirbrillig/lintguard",
+    "description": "Run various code linters but only report messages caused by recent changes.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Payton Swick",
+            "email": "payton@foolord.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "./vendor/bin/phpunit --color=always --verbose"
+    },
+    "bin": [
+        "bin/lintguard"
+    ],
+    "autoload": {
+        "psr-4": {
+            "LintGuard\\": "LintGuard/"
+        },
+        "files": [
+            "LintGuard/Cli.php",
+            "LintGuard/SvnWorkflow.php",
+            "LintGuard/GitWorkflow.php",
+            "LintGuard/functions.php"
+        ]
+    },
+    "require": {
+        "php": "^7.1 || ^8.0"
+    },
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^0.7.1",
+        "phpunit/phpunit": "^6.4 || ^9.5",
+        "squizlabs/php_codesniffer": "^3.2.1"
+    }
+}

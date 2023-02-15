@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ruleset name="LintGuard">
+ <description>Run various code linters but only report messages caused by recent changes.</description>
+ <rule ref="VariableAnalysis"/>
+ <rule ref="ImportDetection"/>
+</ruleset>

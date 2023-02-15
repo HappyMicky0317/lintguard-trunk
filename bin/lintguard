@@ -1,0 +1,111 @@
+#!/usr/bin/env php
+<?php
+// Make sure this script is being run over the PHP CLI!
+if ('cli' !== php_sapi_name()) {
+	return;
+}
+
+require_once __DIR__ . '/../index.php';
+
+use function LintGuard\Cli\{
+	printHelp,
+	printVersion,
+	printErrorAndExit,
+	getDebug,
+	runManualWorkflow,
+	runSvnWorkflow,
+	runGitWorkflow,
+	reportMessagesAndExit,
+	fileHasValidExtension,
+	shouldIgnorePath,
+	printInstalledCodingStandards
+};
+use LintGuard\CliOptions;
+use LintGuard\Config;
+use LintGuard\UnixShell;
+use LintGuard\CacheManager;
+use LintGuard\FileCache;
+
+$optind = 0;
+$options = getopt(
+	'h',
+	[
+		'help',
+		'linter:',
+		'version',
+		'diff:',
+		'previous-lint:',
+		'new-lint:',
+		'svn',
+		'git-unstaged',
+		'git-staged',
+		'git-base:',
+		'report:',
+		'debug',
+		'cache',
+		'config:',
+		'no-cache',
+		'clear-cache',
+	],
+	$optind
+);
+
+if (isset($options['h']) || isset($options['help'])) {
+	printHelp();
+	exit(0);
+}
+
+if (isset($options['version'])) {
+	printVersion();
+}
+
+$cliOptions = CliOptions::fromArray($options);
+
+if (empty($cliOptions->linter)) {
+	printErrorAndExit('You must specify a linter.');
+	exit(1);
+}
+
+$debug = getDebug($cliOptions);
+$debug('Options: ' . json_encode($options));
+
+$configJson = file_get_contents($cliOptions->configPath) ?: '{}';
+$cliOptions->config = Config::fromJson($configJson);
+
+$diffFile = $options['diff'] ?? null;
+$oldLintFile = $options['previous-lint'] ?? null;
+$newLintFile = $options['new-lint'] ?? null;
+
+if ($diffFile && $oldLintFile && $newLintFile) {
+	reportMessagesAndExit(
+		runManualWorkflow($diffFile, $oldLintFile, $newLintFile),
+		$cliOptions
+	);
+	return;
+}
+
+if ($cliOptions->svnMode) {
+	$shell = new UnixShell();
+	reportMessagesAndExit(
+		runSvnWorkflow($cliOptions, $shell, new CacheManager($cliOptions, FileCache())),
+		$cliOptions
+	);
+	return;
+}
+
+if ($cliOptions->gitUnstaged || $cliOptions->gitStaged || ! empty($cliOptions->gitBase)) {
+	$shell = new UnixShell();
+	reportMessagesAndExit(
+		runGitWorkflow($cliOptions, $shell, new CacheManager($cliOptions, FileCache())),
+		$cliOptions
+	);
+	return;
+}
+
+if (! $cliOptions->svnMode && ! $cliOptions->gitUnstaged && ! $cliOptions->gitStaged && empty($cliOptions->gitBase)) {
+	printErrorAndExit('You must use either manual or automatic mode.');
+	exit(1);
+}
+
+printHelp();
+exit(1);
